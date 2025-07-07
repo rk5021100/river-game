@@ -1,0 +1,341 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    html, body {
+      width: 100vw;
+      height: 100vh;
+      background: #87CEEB;
+      overflow: hidden;
+      display: flex;
+      justify-content: center;
+      align-items: flex-end;
+      font-family: sans-serif;
+    }
+
+    .scene {
+      position: relative;
+      width: 100vw;
+      height: 100vh;
+    }
+
+    .river {
+      position: absolute;
+      bottom: 0;
+      left: 0;
+      width: 100%;
+      height: 25vh;
+      background: #1E90FF;
+      z-index: 1;
+    }
+
+    .island {
+      position: absolute;
+      bottom: 0;
+      width: 50vh;
+      height: 30vh;
+      background: #228B22;
+      border-radius: 15px;
+      z-index: 2;
+    }
+
+    .island.left { left: -8vh; }
+    .island.right { right: -1vw; }
+
+    .character {
+      position: absolute;
+      z-index: 5;
+      transition: left 1s ease;
+      cursor: pointer;
+    }
+
+    .wolf { width: 17vh; bottom: 25vh; }
+    .sheep { width: 10vh; bottom: 26vh; }
+    .cabbage { width: 10vh; bottom: 25vh; }
+
+    .boat {
+      position: absolute;
+      width: 50vh;
+      bottom: 15vh;
+      z-index: 4;
+      transition: left 1s ease;
+      pointer-events: none;
+    }
+
+    .farmer {
+      width: 18vh;
+      bottom: 27vh;
+      z-index: 3;
+      transition: left 1s ease;
+      pointer-events: none;
+    }
+
+    .button-container {
+      position: absolute;
+      top: 10px;
+      left: 50%;
+      transform: translateX(-50%);
+      z-index: 10;
+      display: flex;
+      gap: 10px;
+    }
+
+    button {
+      padding: 10px 20px;
+      font-size: 16px;
+    }
+
+    @keyframes jump {
+      0%   { transform: translateY(0); }
+      30%  { transform: translateY(-30px); }
+      60%  { transform: translateY(0); }
+      100% { transform: translateY(0); }
+    }
+
+    @keyframes pounce {
+      0%   { transform: scale(1) translateY(0); }
+      50%  { transform: scale(1.1) translateY(-20px); }
+      100% { transform: scale(1) translateY(0); }
+    }
+
+    .jump { animation: jump 0.5s ease; }
+    .attack { animation: pounce 0.6s ease; }
+    .hidden { display: none !important; }
+
+    .attack-text {
+      position: absolute;
+      top: 30%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      font-size: 3em;
+      font-weight: bold;
+      color: crimson;
+      background: rgba(255,255,255,0.9);
+      padding: 20px 40px;
+      border-radius: 15px;
+      z-index: 9999;
+      display: none;
+    }
+
+    .game-over-screen {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100vw;
+      height: 100vh;
+      background: rgba(0,0,0,0.7);
+      display: none;
+      justify-content: center;
+      align-items: center;
+      flex-direction: column;
+      color: white;
+      font-size: 2em;
+      z-index: 9998;
+    }
+
+    @media (orientation: portrait) {
+      body::before {
+        content: "Please rotate your device to landscape mode.";
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        background: rgba(255, 255, 255, 0.8);
+        padding: 20px;
+        border-radius: 10px;
+        color: #333;
+        font-size: 1.5em;
+        text-align: center;
+        z-index: 999;
+      }
+      .scene { display: none; }
+    }
+  </style>
+</head>
+<body>
+  <div class="scene">
+    <div class="button-container">
+      <button onclick="moveBoat()">Move</button>
+      <button onclick="resetGame()">Reset</button>
+    </div>
+
+    <!-- Overlay Text -->
+    <div id="attackText" class="attack-text"></div>
+
+    <!-- Game Over Screen -->
+    <div id="gameOverScreen" class="game-over-screen">
+      <div id="gameOverMessage"></div>
+      <button onclick="resetGame()">Restart</button>
+    </div>
+
+    <img src="https://raw.githubusercontent.com/rk5021100/assets/main/photos/wolf.png" class="character wolf" id="wolf" alt="Wolf">
+    <img src="https://raw.githubusercontent.com/rk5021100/assets/main/photos/sheep.png" class="character sheep" id="sheep" alt="Sheep">
+    <img src="https://raw.githubusercontent.com/rk5021100/assets/main/photos/cabbage.png" class="character cabbage" id="cabbage" alt="Cabbage">
+    <img src="https://raw.githubusercontent.com/rk5021100/assets/main/photos/farmer.png" class="character farmer" id="farmer" alt="Farmer">
+    <img src="https://raw.githubusercontent.com/rk5021100/assets/main/photos/boat.png" class="boat" id="boat" alt="Boat">
+
+    <div class="island left"></div>
+    <div class="island right"></div>
+    <div class="river"></div>
+  </div>
+
+  <script>
+    const boat = document.getElementById("boat");
+    const farmer = document.getElementById("farmer");
+    const characters = {
+      wolf: document.getElementById("wolf"),
+      sheep: document.getElementById("sheep"),
+      cabbage: document.getElementById("cabbage")
+    };
+
+    const attackText = document.getElementById("attackText");
+    const gameOverScreen = document.getElementById("gameOverScreen");
+    const gameOverMessage = document.getElementById("gameOverMessage");
+
+    let onboard = null;
+    let gameOver = false;
+
+    const state = {
+      wolf: "left",
+      sheep: "left",
+      cabbage: "left",
+      farmer: "left"
+    };
+
+    const positions = {
+      left: {
+        boat: "13vw",
+        farmer: "20vw",
+        wolf: "1vw",
+        sheep: "10vw",
+        cabbage: "15vw",
+        onboard: "30vw"
+      },
+      right: {
+        boat: "45vw",
+        farmer: "52vw",
+        wolf: "85vw",
+        sheep: "78vw",
+        cabbage: "70vw",
+        onboard: "62vw"
+      }
+    };
+
+    function updatePositions() {
+      boat.style.left = positions[state.farmer].boat;
+      farmer.style.left = positions[state.farmer].farmer;
+
+      Object.keys(characters).forEach(name => {
+        const el = characters[name];
+        if (onboard === name) {
+          el.style.left = positions[state.farmer].onboard;
+          el.style.zIndex = 4;
+        } else {
+          el.style.left = positions[state[name]][name];
+          el.style.zIndex = 5;
+        }
+      });
+    }
+
+    function moveBoat() {
+      if (gameOver) return;
+      state.farmer = state.farmer === "left" ? "right" : "left";
+      if (onboard) state[onboard] = state.farmer;
+      updatePositions();
+      setTimeout(checkDanger, 1100);
+    }
+
+    Object.keys(characters).forEach(name => {
+      characters[name].addEventListener("click", () => {
+        if (gameOver) return;
+        if (state[name] !== state.farmer && onboard !== name) return;
+
+        const el = characters[name];
+        el.classList.remove("jump");
+        void el.offsetWidth;
+        el.classList.add("jump");
+
+        if (onboard === name) {
+          onboard = null;
+        } else if (!onboard) {
+          onboard = name;
+        }
+        updatePositions();
+      });
+    });
+
+    function checkDanger() {
+      if (state.farmer !== state.sheep) {
+        if (state.wolf === state.sheep) {
+          animateAttack("wolf", "sheep", "🐺 Wolf ate the Sheep!");
+          return;
+        }
+        if (state.cabbage === state.sheep) {
+          animateAttack("sheep", "cabbage", "🐑 Sheep ate the Cabbage!");
+          return;
+        }
+      }
+
+      if (state.wolf === "right" && state.sheep === "right" && state.cabbage === "right" && state.farmer === "right") {
+        setTimeout(() => {
+          gameOver = true;
+          gameOverMessage.textContent = "🎉 Congratulations! You Win!";
+          gameOverScreen.style.display = "flex";
+        }, 500);
+      }
+    }
+
+    function animateAttack(attacker, victim, message) {
+      gameOver = true;
+
+      const attackerEl = characters[attacker];
+      const victimEl = characters[victim];
+
+      const victimLeft = victimEl.style.left;
+      attackerEl.style.left = victimLeft;
+
+      setTimeout(() => {
+        attackerEl.classList.remove("attack");
+        void attackerEl.offsetWidth;
+        attackerEl.classList.add("attack");
+      }, 100);
+
+      setTimeout(() => {
+        victimEl.classList.add("hidden");
+        attackText.textContent = message;
+        attackText.style.display = "block";
+      }, 600);
+
+      setTimeout(() => {
+        attackText.style.display = "none";
+        gameOverMessage.textContent = "💀 Game Over";
+        gameOverScreen.style.display = "flex";
+      }, 1600);
+    }
+
+    function resetGame() {
+      state.wolf = "left";
+      state.sheep = "left";
+      state.cabbage = "left";
+      state.farmer = "left";
+      onboard = null;
+      gameOver = false;
+
+      Object.values(characters).forEach(el => {
+        el.classList.remove("hidden", "attack", "jump");
+      });
+
+      attackText.style.display = "none";
+      gameOverScreen.style.display = "none";
+      gameOverMessage.textContent = "";
+
+      updatePositions();
+    }
+
+    updatePositions();
+  </script>
+</body>
+</html>
