@@ -88,21 +88,6 @@
       font-size: 16px;
     }
 
-    @keyframes jump {
-      0%   { transform: translateY(0); }
-      30%  { transform: translateY(-30px); }
-      60%  { transform: translateY(0); }
-      100% { transform: translateY(0); }
-    }
-
-    @keyframes pounce {
-      0%   { transform: scale(1) translateY(0); }
-      50%  { transform: scale(1.1) translateY(-20px); }
-      100% { transform: scale(1) translateY(0); }
-    }
-
-    .jump { animation: jump 0.5s ease; }
-    .attack { animation: pounce 0.6s ease; }
     .hidden { display: none !important; }
 
     .attack-text {
@@ -136,6 +121,20 @@
       z-index: 9998;
     }
 
+    .overlay {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100vw;
+      height: 100vh;
+      background: rgba(0, 0, 0, 0.8);
+      display: none;
+      justify-content: center;
+      align-items: center;
+      z-index: 9999;
+      padding: 20px;
+    }
+
     @media (orientation: portrait) {
       body::before {
         content: "Please rotate your device to landscape mode.";
@@ -157,26 +156,45 @@
 </head>
 <body>
   <div class="scene">
+    <!-- Top Buttons -->
     <div class="button-container">
       <button onclick="moveBoat()">Move</button>
       <button onclick="resetGame()">Reset</button>
+      <button onclick="showRules()">Rules</button>
     </div>
 
-    <!-- Overlay Text -->
-    <div id="attackText" class="attack-text"></div>
+    <!-- Stylish Rules Overlay -->
+    <div id="rulesOverlay" class="overlay">
+      <div style="max-width: 90vw; max-height: 80vh; overflow-y: auto; text-align: left; background: white; border-radius: 20px; padding: 20px;">
+        <h2 style="text-align: center;">📝 Game Rules</h2>
+        <ul style="line-height: 1.8; font-size: 1em;">
+          <li>🚜 The farmer is the only one who can operate the boat.</li>
+          <li>🚤 The boat can only carry the farmer and one other item.</li>
+          <li>🐺 The wolf cannot be left alone with the sheep.</li>
+          <li>🐑 The sheep cannot be left alone with the cabbage.</li>
+          <li>👆 Tap characters to load/unload them from the boat.</li>
+          <li>🏁 Goal: Get everyone to the right side safely without anyone getting eaten!</li>
+        </ul>
+        <div style="text-align: center; margin-top: 20px;">
+          <button onclick="closeRules()" style="font-size: 2em;">Close</button>
+        </div>
+      </div>
+    </div>
 
-    <!-- Game Over Screen -->
+    <!-- Game Over -->
     <div id="gameOverScreen" class="game-over-screen">
       <div id="gameOverMessage"></div>
       <button onclick="resetGame()">Restart</button>
     </div>
 
+    <!-- Characters -->
     <img src="https://raw.githubusercontent.com/rk5021100/assets/main/photos/wolf.png" class="character wolf" id="wolf" alt="Wolf">
     <img src="https://raw.githubusercontent.com/rk5021100/assets/main/photos/sheep.png" class="character sheep" id="sheep" alt="Sheep">
     <img src="https://raw.githubusercontent.com/rk5021100/assets/main/photos/cabbage.png" class="character cabbage" id="cabbage" alt="Cabbage">
     <img src="https://raw.githubusercontent.com/rk5021100/assets/main/photos/farmer.png" class="character farmer" id="farmer" alt="Farmer">
     <img src="https://raw.githubusercontent.com/rk5021100/assets/main/photos/boat.png" class="boat" id="boat" alt="Boat">
 
+    <!-- Environment -->
     <div class="island left"></div>
     <div class="island right"></div>
     <div class="river"></div>
@@ -194,6 +212,7 @@
     const attackText = document.getElementById("attackText");
     const gameOverScreen = document.getElementById("gameOverScreen");
     const gameOverMessage = document.getElementById("gameOverMessage");
+    const rulesOverlay = document.getElementById("rulesOverlay");
 
     let onboard = null;
     let gameOver = false;
@@ -290,30 +309,17 @@
 
     function animateAttack(attacker, victim, message) {
       gameOver = true;
-
       const attackerEl = characters[attacker];
       const victimEl = characters[victim];
-
       const victimLeft = victimEl.style.left;
+
       attackerEl.style.left = victimLeft;
 
       setTimeout(() => {
-        attackerEl.classList.remove("attack");
-        void attackerEl.offsetWidth;
-        attackerEl.classList.add("attack");
-      }, 100);
-
-      setTimeout(() => {
         victimEl.classList.add("hidden");
-        attackText.textContent = message;
-        attackText.style.display = "block";
-      }, 600);
-
-      setTimeout(() => {
-        attackText.style.display = "none";
-        gameOverMessage.textContent = "💀 Game Over";
+        gameOverMessage.textContent = message;
         gameOverScreen.style.display = "flex";
-      }, 1600);
+      }, 800);
     }
 
     function resetGame() {
@@ -325,14 +331,21 @@
       gameOver = false;
 
       Object.values(characters).forEach(el => {
-        el.classList.remove("hidden", "attack", "jump");
+        el.classList.remove("hidden");
       });
 
-      attackText.style.display = "none";
       gameOverScreen.style.display = "none";
       gameOverMessage.textContent = "";
 
       updatePositions();
+    }
+
+    function showRules() {
+      rulesOverlay.style.display = "flex";
+    }
+
+    function closeRules() {
+      rulesOverlay.style.display = "none";
     }
 
     updatePositions();
