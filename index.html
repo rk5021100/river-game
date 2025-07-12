@@ -182,10 +182,13 @@
     </div>
 
     <!-- Game Over -->
-    <div id="gameOverScreen" class="game-over-screen">
-      <div id="gameOverMessage"></div>
-      <button onclick="resetGame()">Restart</button>
-    </div>
+<div id="gameOverScreen" class="game-over-screen">
+  <div id="gameOverMessage"></div>
+  <div id="gameButtons">
+    <button id="restartButton" onclick="resetGame()">Restart</button>
+    <button id="menuButton" onclick="goToMenu()" style="display: none;">Menu</button>
+  </div>
+</div>
 
     <!-- Characters -->
     <img src="https://raw.githubusercontent.com/rk5021100/assets/main/photos/wolf.png" class="character wolf" id="wolf" alt="Wolf">
@@ -299,12 +302,14 @@
       }
 
       if (state.wolf === "right" && state.sheep === "right" && state.cabbage === "right" && state.farmer === "right") {
-        setTimeout(() => {
-          gameOver = true;
-          gameOverMessage.textContent = "🎉 Congratulations! You Win!";
-          gameOverScreen.style.display = "flex";
-        }, 500);
-      }
+  setTimeout(() => {
+    gameOver = true;
+    gameOverMessage.textContent = "🎉 Congratulations! You Win!";
+    document.getElementById("restartButton").style.display = "none";
+    document.getElementById("menuButton").style.display = "inline-block";
+    gameOverScreen.style.display = "flex";
+  }, 500);
+}
     }
 
     function animateAttack(attacker, victim, message) {
@@ -317,7 +322,10 @@
 
       setTimeout(() => {
         victimEl.classList.add("hidden");
+        
         gameOverMessage.textContent = message;
+        document.getElementById("restartButton").style.display = "inline-block";
+        document.getElementById("menuButton").style.display = "none";
         gameOverScreen.style.display = "flex";
       }, 800);
     }
@@ -347,6 +355,13 @@
     function closeRules() {
       rulesOverlay.style.display = "none";
     }
+
+    function goToMenu() {
+  window.location.href = "https://rk5021100.github.io/River-puzzles/"; // Replace with your actual main menu URL
+    }
+
+
+    
 
     updatePositions();
   </script>
